@@ -79,6 +79,7 @@ socketServer.sockets.on('connection', function (socket) {
     //     message: 'Hello' + ' test'
     // });
     console.log('Connected');
+    console.log(socketServer.sockets.connected);
     socket.emit('client-info', {
         socketId: socket.id
     });
@@ -93,7 +94,7 @@ socketServer.sockets.on('connection', function (socket) {
                 return next(err);
 
             socket.emit('init', {
-                conversationId: conversation,
+                conversation: conversation,
                 userName: data.userName,
                 recipient: data.recipient,
                 message: 'Init Conversation ' + conversation
@@ -119,19 +120,18 @@ socketServer.sockets.on('connection', function (socket) {
     socket.on('send', function (data) {
         // socketServer.sockets.to('Thinhnv').emit('message', data);
         console.log(data);
-        socketServer.sockets.to(data.recipient).emit('message', {
+        socketServer.sockets.to(data.conversation).emit('message', {
             sender: data.sender,
-            recipient: data.recipient,
-            name: data.sender,
+            conversation: data.conversation,
             message: data.message
         });
 
-        socket.emit('message', {
-            sender: data.recipient,
-            recipient: data.sender,
-            name: data.sender,
-            message: data.message
-        });
+        // socket.emit('message', {
+        //     sender: data.recipient,
+        //     recipient: data.sender,
+        //     name: data.sender,
+        //     message: data.message
+        // });
     });
 });
 
