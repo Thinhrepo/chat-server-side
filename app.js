@@ -6,18 +6,28 @@ var mongoose = require('mongoose');
 var dotenv = require('dotenv');
 var bodyParser = require('body-parser');
 var chalk = require('chalk');
+var helperFunctions = require('./helpers/functions');
 
 var socket = require('socket.io');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
+var api = require('./routes/api');
 
 var app = express();
 
 /**
  * Load environment variables from .env file, where API keys and passwords are configured.
  */
-dotenv.load({ path: '.env' });
+dotenv.load({path: '.env'});
+
+/* Model require */
+var User = require('./models/User');
+
+/**
+ * Controllers (route handlers).
+ */
+var apiController = require('./controllers/api');
 
 /**
  * Connect to MongoDB.
@@ -38,17 +48,18 @@ app.set('port', process.env.PORT || 8080);
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', index);
 app.use('/users', users);
+app.use('/api', api);
 
 /**
  * Start Express server.
  */
-var server = app.listen(app.get('port'), function() {
+var server = app.listen(app.get('port'), function () {
     console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
     console.log('  Press CTRL-C to stop\n');
 });
@@ -56,10 +67,9 @@ var server = app.listen(app.get('port'), function() {
 // Socket server
 var socketServer = socket(server);
 
-var i = 1;
+var allSockets = {};
 socketServer.sockets.on('connection', function (socket) {
-    console.log('New client connected ...');
-
+    // console.log(socketServer.sockets.clients());
     // var iden = 'Client'+i;
     // socket.join(iden);
     // socketServer.sockets.emit('message', {
@@ -68,26 +78,42 @@ socketServer.sockets.on('connection', function (socket) {
     //     name: 'Thinhnv',
     //     message: 'Hello' + ' test'
     // });
+    console.log('Connected');
+    socket.emit('client-info', {
+        socketId: socket.id
+    });
 
     // Event when new client join chat
-    socket.on('join', function (data) {
-        console.log(data);
-        socket.join(data.name); // We are using room of socket io
-        // socketServer.sockets.emit('message', { message: data.name + ' joined to room' });
-        socketServer.sockets.emit('message', {
-            sender: 'Thinhnv',
-            recipient: data.name,
-            name: 'Thinhnv',
-            message: 'Hello ' + data.name
+    socket.on('init', function (data) {
+        var conversation = helperFunctions.randomString(8);
+        socket.userName = data.userName;
+        socket.join(conversation); // We are using room of socket io
+        User.findOne({email: 'admin@gmail.com'}, function (err, user) {
+            if (err)
+                return next(err);
+
+            socket.emit('init', {
+                conversationId: conversation,
+                userName: data.userName,
+                recipient: data.recipient,
+                message: 'Init Conversation ' + conversation
+            });
+            // socket.emit('init', {
+            //     conversationId: conversation,
+            //     userName: data.userName,
+            //     recipient: data.recipient,
+            //     message: 'Init Conversation ' + conversation
+            // });
         });
-        // if(data.name != 'Thinhnv'){
-        //     socket.emit('message', {
-        //         sender: 'Thinhnv',
-        //         recipient: data.name,
-        //         name: 'Thinhnv',
-        //         message: 'Hello ' + data.name
-        //     });
-        // }
+        // console.log(conversation);
+        // socketServer.sockets.emit('message', { message: data.name + ' joined to room' });
+        // socketServer.sockets.emit('message', {
+        //     conversation: conversation,
+        //     sender: 'Server',
+        //     recipient: data.name,
+        //     name: data.name,
+        //     message: data.name + ' joined'
+        // });
     });
 
     socket.on('send', function (data) {
@@ -107,7 +133,6 @@ socketServer.sockets.on('connection', function (socket) {
             message: data.message
         });
     });
-    i++;
 });
 
 
