@@ -79,33 +79,33 @@ socketServer.sockets.on('connection', function (socket) {
     //     message: 'Hello' + ' test'
     // });
     console.log('Connected');
-    console.log(socketServer.sockets.connected);
-    socket.emit('client-info', {
-        socketId: socket.id
-    });
+    // console.log(socketServer.sockets.connected);
+    // socket.emit('client-info', {
+    //     socketId: socket.id
+    // });
 
     // Event when new client join chat
-    socket.on('init', function (data) {
-        var conversation = helperFunctions.randomString(8);
-        socket.userName = data.userName;
-        socket.join(conversation); // We are using room of socket io
-        User.findOne({email: 'admin@gmail.com'}, function (err, user) {
-            if (err)
-                return next(err);
-
-            socket.emit('init', {
-                conversation: conversation,
-                userName: data.userName,
-                recipient: data.recipient,
-                message: 'Init Conversation ' + conversation
-            });
-            // socket.emit('init', {
-            //     conversationId: conversation,
-            //     userName: data.userName,
-            //     recipient: data.recipient,
-            //     message: 'Init Conversation ' + conversation
-            // });
-        });
+    socket.on('identifier', function (data) {
+        console.log(data);
+        socket.join(data.email);
+        // We are using room of socket io
+        // User.findOne({email: 'admin@gmail.com'}, function (err, user) {
+        //     if (err)
+        //         return next(err);
+        //
+        //     socket.emit('init', {
+        //         conversation: conversation,
+        //         userName: data.userName,
+        //         recipient: data.recipient,
+        //         message: 'Init Conversation ' + conversation
+        //     });
+        //     // socket.emit('init', {
+        //     //     conversationId: conversation,
+        //     //     userName: data.userName,
+        //     //     recipient: data.recipient,
+        //     //     message: 'Init Conversation ' + conversation
+        //     // });
+        // });
         // console.log(conversation);
         // socketServer.sockets.emit('message', { message: data.name + ' joined to room' });
         // socketServer.sockets.emit('message', {
@@ -117,23 +117,44 @@ socketServer.sockets.on('connection', function (socket) {
         // });
     });
 
-    socket.on('send', function (data) {
-        // socketServer.sockets.to('Thinhnv').emit('message', data);
-        console.log(data);
-        socketServer.sockets.to(data.conversation).emit('message', {
-            sender: data.sender,
-            conversation: data.conversation,
-            message: data.message
-        });
+    socket.on('init', function (data){
+        var room = helperFunctions.randomString(8);
 
-        // socket.emit('message', {
-        //     sender: data.recipient,
-        //     recipient: data.sender,
-        //     name: data.sender,
-        //     message: data.message
-        // });
+        // var ownerSockets = socketServer.sockets.adapter.rooms[data.owner];
+        // console.log(ownerSockets);
+        // if(ownerSockets)
+        //     for(var socketId in ownerSockets.sockets){
+        //         socketServer.sockets.connected[socketId].join(room);
+        //     }
+        //
+        // var partnerSockets = socketServer.sockets.adapter.rooms[data.partner];
+        // console.log(partnerSockets);
+        // if(partnerSockets)
+        //     for(var socketId in partnerSockets.sockets){
+        //         socketServer.sockets.connected[socketId].join(room);
+        //     }
+
+        socket.emit('init', {
+            room: data.partner,
+            owner: data.owner,
+            partner: data.partner
+        });
+    });
+
+    socket.on('send', function (data) {
+        console.log(data);
+        socketServer.sockets.to(data.room).emit('message', {
+            partner: data.sender,
+            sender: data.sender,
+            message: data.message,
+            room: data.sender
+        });
+        socketServer.sockets.to(data.sender).emit('message', {
+            sender: data.sender,
+            message: data.message,
+            room: data.room
+        });
     });
 });
-
 
 module.exports = app;
