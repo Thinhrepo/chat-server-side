@@ -87,68 +87,35 @@ socketServer.sockets.on('connection', function (socket) {
     // Event when new client join chat
     socket.on('identifier', function (data) {
         console.log(data);
-        socket.join(data.email);
-        // We are using room of socket io
-        // User.findOne({email: 'admin@gmail.com'}, function (err, user) {
-        //     if (err)
-        //         return next(err);
-        //
-        //     socket.emit('init', {
-        //         conversation: conversation,
-        //         userName: data.userName,
-        //         recipient: data.recipient,
-        //         message: 'Init Conversation ' + conversation
-        //     });
-        //     // socket.emit('init', {
-        //     //     conversationId: conversation,
-        //     //     userName: data.userName,
-        //     //     recipient: data.recipient,
-        //     //     message: 'Init Conversation ' + conversation
-        //     // });
-        // });
-        // console.log(conversation);
-        // socketServer.sockets.emit('message', { message: data.name + ' joined to room' });
-        // socketServer.sockets.emit('message', {
-        //     conversation: conversation,
-        //     sender: 'Server',
-        //     recipient: data.name,
-        //     name: data.name,
-        //     message: data.name + ' joined'
-        // });
+        socket.join(data.uId);
     });
 
     socket.on('init', function (data){
-        var room = helperFunctions.randomString(8);
-
-        // var ownerSockets = socketServer.sockets.adapter.rooms[data.owner];
-        // console.log(ownerSockets);
-        // if(ownerSockets)
-        //     for(var socketId in ownerSockets.sockets){
-        //         socketServer.sockets.connected[socketId].join(room);
-        //     }
-        //
-        // var partnerSockets = socketServer.sockets.adapter.rooms[data.partner];
-        // console.log(partnerSockets);
-        // if(partnerSockets)
-        //     for(var socketId in partnerSockets.sockets){
-        //         socketServer.sockets.connected[socketId].join(room);
-        //     }
-
-        socket.emit('init', {
-            room: data.partner,
-            owner: data.owner,
-            partner: data.partner
+        console.log(data);
+        User.findOne({ _id: data.owner }, (err, owner) => {
+            console.log(owner);
+            if (err) { return next(err); }
+            User.findOne({ _id: data.partner }, (err, partner) => {
+                socket.emit('init', {
+                    owner: owner,
+                    partner: partner
+                });
+            });
         });
     });
 
     socket.on('send', function (data) {
         console.log(data);
-        socketServer.sockets.to(data.room).emit('message', {
+
+        // Send message to recipient
+        socketServer.sockets.to(data.recipient).emit('message', {
             partner: data.sender,
             sender: data.sender,
             message: data.message,
             room: data.sender
         });
+
+        // Send message to sender
         socketServer.sockets.to(data.sender).emit('message', {
             sender: data.sender,
             message: data.message,
